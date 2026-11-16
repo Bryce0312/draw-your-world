@@ -72,7 +72,7 @@ async function prepareTurn(state: TurnState) {
   const session = mutateSession(state.sessionId, (current) => {
     if (current.status !== "active") throw new StudioStoreError("这次创作已经结束，可以重新开始。", 409);
     if (current.messages.some((message) => message.id === state.turnId)) return;
-    const content = state.input || (state.requestKind === "video" ? "试试动画" : "试试画面变化");
+    const content = state.input || (state.requestKind === "video" ? "Try a little motion" : "Try a small change");
     current.messages.push({ id: state.turnId, role: "user", content, createdAt: new Date().toISOString() });
     if (state.input) uniquePush(current.userStatements, state.input);
     if (isCorrection(state.input)) { uniquePush(current.rejectedInterpretations, state.input); invalidateDrafts(current); }
@@ -97,15 +97,15 @@ function modelContext(session: StudioSession, state: TurnState) {
 }
 
 function safeChatError(error: unknown) {
-  if (error instanceof OpenAI.APIConnectionTimeoutError) return "对话等待超时，你刚才的输入已保留，可以稍后重试。";
-  if (error instanceof OpenAI.APIError && (error.status === 401 || error.status === 403)) return "对话服务暂时无法使用，你刚才的输入已保留。";
-  return "对话暂时中断，你刚才的输入已保留，可以稍后重试。";
+  if (error instanceof OpenAI.APIConnectionTimeoutError) return "The reply took too long. Your message is saved; please try again.";
+  if (error instanceof OpenAI.APIError && (error.status === 401 || error.status === 403)) return "The conversation service is unavailable. Your message is saved.";
+  return "The conversation was interrupted. Your message is saved; please try again.";
 }
 
 async function reason(state: TurnState) {
   const session = getSession(state.sessionId);
   if (session.mode === "demo") return demoDecision(session, state);
-  if (!process.env.DEEPSEEK_API_KEY) return { error: "对话服务尚未配置，你刚才的输入已保留。", calls: [] };
+  if (!process.env.DEEPSEEK_API_KEY) return { error: "The conversation service is not connected yet. Your message is saved.", calls: [] };
   const client = new OpenAI({ apiKey: process.env.DEEPSEEK_API_KEY, baseURL: process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com", timeout: 45_000, maxRetries: 0 });
   try {
     const messages: ModelMessage[] = [
@@ -245,7 +245,7 @@ async function finishTurn(state: TurnState) {
   const content = state.error ? [state.reply, state.error].filter(Boolean).join("\n") : state.reply;
   if (state.error) { turnContext.getStore()?.emit({ type: "text.delta", text: `${state.reply ? "\n" : ""}${state.error}` }); turnContext.getStore()?.emit({ type: "error", message: state.error }); }
   const session = mutateSession(state.sessionId, (current) => {
-    if (!current.messages.some((message) => message.id === `${state.turnId}-reply`)) current.messages.push({ id: `${state.turnId}-reply`, role: "assistant", content: content || "这次没有收到完整回复，你的输入已保留。", createdAt: new Date().toISOString() });
+    if (!current.messages.some((message) => message.id === `${state.turnId}-reply`)) current.messages.push({ id: `${state.turnId}-reply`, role: "assistant", content: content || "The reply did not finish. Your message is saved.", createdAt: new Date().toISOString() });
   });
   turnContext.getStore()?.emit({ type: "state", session });
   return {};

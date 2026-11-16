@@ -49,7 +49,7 @@ describe("studio conversational agent authorization and durable memory", () => {
     const current = getSession(session.id);
     expect(current.messages.filter((message) => message.role === "user").map((message) => message.content)).toEqual(["树没有特别含义"]);
     expect(current.userStatements).toEqual(["树没有特别含义"]);
-    expect(stream.captured).toContainEqual({ type: "error", message: expect.stringContaining("尚未配置") });
+    expect(stream.captured).toContainEqual({ type: "error", message: expect.stringContaining("not connected yet") });
     expect(current.proposals).toHaveLength(0);
     expect(fetchMock).not.toHaveBeenCalled();
   });

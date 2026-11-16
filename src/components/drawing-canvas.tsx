@@ -3,11 +3,11 @@
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 
 export interface DrawingCanvasHandle { exportImage: () => string | null; hasDrawing: () => boolean }
-interface DrawingCanvasProps { sessionId: string; originalUrl?: string; disabled?: boolean; onDirty: (dirty: boolean) => void }
-const PAPER = "#fcfbf9";
-const COLORS = ["#27233d", "#705ee7", "#ff7e6f", "#d7b85d", "#55b5ab", "#a487d4"];
+interface DrawingCanvasProps { sessionId: string; originalUrl?: string; disabled?: boolean; persistDraft?: boolean; onDirty: (dirty: boolean) => void }
+const PAPER = "#FFFDF8";
+const COLORS = ["#343B32", "#52604B", "#C8785E", "#D4AD61", "#91A5A0", "#B8A5BA"];
 
-export const DrawingCanvas = memo(forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(function DrawingCanvas({ sessionId, originalUrl, disabled, onDirty }, ref) {
+export const DrawingCanvas = memo(forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(function DrawingCanvas({ sessionId, originalUrl, disabled, persistDraft = true, onDirty }, ref) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const active = useRef(false);
   const changedRef = useRef(false);
@@ -33,9 +33,9 @@ export const DrawingCanvas = memo(forwardRef<DrawingCanvasHandle, DrawingCanvasP
     if (dirty) {
       changedRef.current = true;
       onDirty(true);
-      try { localStorage.setItem(storageKey, data); } catch { setNotice("This browser could not save the draft. Download your artwork before leaving."); }
+      try { persistDraft && localStorage.setItem(storageKey, data); } catch { setNotice("This browser could not save the draft. Download your artwork before leaving."); }
     }
-  }, [onDirty, storageKey]);
+  }, [onDirty, storageKey, persistDraft]);
 
   const restore = useCallback((data: string, dirty = true) => {
     const image = new Image();
@@ -46,10 +46,10 @@ export const DrawingCanvas = memo(forwardRef<DrawingCanvasHandle, DrawingCanvasP
       ctx.fillStyle = PAPER; ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
       hasInkRef.current = true; setHasInk(true);
-      if (dirty) { changedRef.current = true; onDirty(true); try { localStorage.setItem(storageKey, data); } catch { /* draft remains in canvas */ } }
+      if (dirty) { changedRef.current = true; onDirty(true); try { persistDraft && localStorage.setItem(storageKey, data); } catch { /* draft remains in canvas */ } }
     };
     image.src = data;
-  }, [onDirty, storageKey]);
+  }, [onDirty, storageKey, persistDraft]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -58,12 +58,12 @@ export const DrawingCanvas = memo(forwardRef<DrawingCanvasHandle, DrawingCanvasP
     // Match the backing store to the responsive paper shape so pointer positions
     // and the exported image keep the same proportions, including short laptops.
     const bounds = canvas.getBoundingClientRect();
-    if (bounds.width > 0 && bounds.height > 0) canvas.height = Math.round(canvas.width * bounds.height / bounds.width);
+    canvas.height = 780;
     ctx.fillStyle = PAPER; ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.lineCap = "round"; ctx.lineJoin = "round";
     let cancelled = false;
     let draft: string | null = null;
-    try { draft = localStorage.getItem(storageKey); } catch { /* browser may disable local storage */ }
+    try { draft = persistDraft ? localStorage.getItem(storageKey) : null; } catch { /* browser may disable local storage */ }
     const source = draft || originalUrl;
     const finish = () => { if (!cancelled) snapshot(false); };
     if (source) {
@@ -167,7 +167,7 @@ export const DrawingCanvas = memo(forwardRef<DrawingCanvasHandle, DrawingCanvasP
   }
 
   return <div className="canvas-editor" data-history={historyVersion}>
-    <div className="canvas-topline"><span><span className="tiny-dot" /> {hasInk ? "Take your time with every line" : "Start with a person, a tree, or a house"}</span><button className="text-button sample-link" disabled={disabled} onClick={() => { if (hasInk && !window.confirm("The sample will replace your current draft, but you can undo it. Continue?")) return; sample(); }}>Try a sample drawing <span aria-hidden>↗</span></button></div>
+    <div className="canvas-topline"><span><span className="tiny-dot" /> {hasInk ? "Take your time with every line" : "Follow a line. See where it takes you."}</span><button className="text-button sample-link" disabled={disabled} onClick={() => { if (hasInk && !window.confirm("The sample will replace your current draft, but you can undo it. Continue?")) return; sample(); }}>Try a sample <span aria-hidden>↗</span></button></div>
     <div className="canvas-surface">
       <canvas ref={canvasRef} width={1200} height={780} aria-label="Drawing canvas" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} />
       {!hasInk && <div className="canvas-placeholder" aria-hidden="true"><svg width="48" height="48" viewBox="0 0 48 48" fill="none"><path d="M8 35 32 11l5 5-24 24-7 2 2-7Z" stroke="currentColor" strokeWidth="1.3"/><path d="m27 16 5 5M8 35l5 5" stroke="currentColor" strokeWidth="1.3"/></svg><p>Start with your first line.</p><span>No art skills or right answers needed.</span></div>}
@@ -175,7 +175,7 @@ export const DrawingCanvas = memo(forwardRef<DrawingCanvasHandle, DrawingCanvasP
     <div className="drawing-tools" aria-label="Drawing tools">
       <div className="tool-group"><button className={`tool-button ${!eraser ? "active" : ""}`} aria-label="Brush" aria-pressed={!eraser} onClick={() => setEraser(false)} disabled={disabled}><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m5 16 10-11 4 4L8 19l-5 2 2-5Z" stroke="currentColor" strokeWidth="1.5"/></svg></button><button className={`tool-button ${eraser ? "active" : ""}`} aria-label="Eraser" aria-pressed={eraser} onClick={() => setEraser(true)} disabled={disabled}><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m4 13 9-9 7 7-9 9H8l-4-4v-3ZM9 8l7 7M10 20h11" stroke="currentColor" strokeWidth="1.5"/></svg></button></div>
       <div className="tool-divider" />
-      <div className="color-palette" aria-label="Drawing colors">{COLORS.map((value, i) => <button key={value} aria-label={`${["Ink", "Iris", "Coral", "Ochre", "Mint", "Lilac"][i]} brush color`} aria-pressed={color === value && !eraser} className={`color-dot ${color === value && !eraser ? "selected" : ""}`} style={{ "--swatch": value } as React.CSSProperties} disabled={disabled} onClick={() => { setColor(value); setEraser(false); }} />)}</div>
+      <div className="color-palette" aria-label="Drawing colors">{COLORS.map((value, i) => <button key={value} aria-label={`${["Ink", "Olive", "Clay", "Ochre", "Blue", "Lilac"][i]} brush color`} aria-pressed={color === value && !eraser} className={`color-dot ${color === value && !eraser ? "selected" : ""}`} style={{ "--swatch": value } as React.CSSProperties} disabled={disabled} onClick={() => { setColor(value); setEraser(false); }} />)}</div>
       <label className="brush-size"><span>Size</span><input aria-label="BrushSize" type="range" min="2" max="12" value={width} disabled={disabled} onChange={(e) => setWidth(Number(e.target.value))} /></label>
       <div className="tool-group history-tools"><button className="tool-button" aria-label="Undo" disabled={disabled || historyIndex.current <= 0} onClick={() => undo(-1)}>↶</button><button className="tool-button" aria-label="Redo" disabled={disabled || historyIndex.current >= historyRef.current.length - 1} onClick={() => undo(1)}>↷</button><button className="tool-button clear-tool" aria-label="Clear canvas" disabled={disabled || !hasInk} onClick={() => setClearOpen(true)}><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5M14 11v5" stroke="currentColor" strokeWidth="1.5"/></svg></button></div>
     </div>

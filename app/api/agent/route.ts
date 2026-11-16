@@ -27,22 +27,22 @@ async function applyEvent(sessionId: string, event: StudioEvent, emit: (event: S
   if (event.type === "message") { await converse(sessionId, event.text, emit); return; }
   if (event.type === "request_change") { await converse(sessionId, "", emit, { requestKind: event.kind }); return; }
   if (event.type === "cancel_job") { cancelJob(sessionId, event.jobId); return; }
-  if (event.type === "accept_result") { acceptJobResult(sessionId, event.jobId); appendReply(sessionId, "这一版留下来了。你可以继续聊聊它，也可以到这里结束。"); return; }
-  if (event.type === "discard_result") { discardJobResult(sessionId, event.jobId); appendReply(sessionId, "这份结果已舍弃，原画仍然留着。你可以换个想法再试，也可以就这样保留。"); return; }
+  if (event.type === "accept_result") { acceptJobResult(sessionId, event.jobId); appendReply(sessionId, "This version is kept. We can talk about it a little more, or leave it here."); return; }
+  if (event.type === "discard_result") { discardJobResult(sessionId, event.jobId); appendReply(sessionId, "That version is set aside. Your original is still here, just as you made it."); return; }
   mutateSession(sessionId, s => {
     if (event.type === "record_mood") { s.feedback = { ...s.feedback, moodBefore: event.mood }; return; }
     if (event.type === "complete") {
       s.feedback = { ...s.feedback, moodAfter: event.mood, text: event.text }; s.status = "complete";
       for (const job of s.jobs) if (["queued", "submitted", "running"].includes(job.status)) { job.status = "cancelled"; job.updatedAt = new Date().toISOString(); }
       for (const p of s.proposals) if (p.status === "draft" || p.status === "approved") p.status = "stale";
-      s.messages.push({ id: crypto.randomUUID(), role: "assistant", content: "谢谢你把这个世界留在这里。无论感受有没有变化，这次表达都可以停在你觉得合适的地方。", createdAt: new Date().toISOString() }); return;
+      s.messages.push({ id: crypto.randomUUID(), role: "assistant", content: "Thank you for sharing a little of your world. However you feel, this is a good place to pause if it feels right to you.", createdAt: new Date().toISOString() }); return;
     }
     const proposal = s.proposals.find(p => p.id === event.proposalId);
     if (!proposal || proposal.status !== "draft" || proposal.artworkVersion !== s.artworkVersion || proposal.sourceAssetId !== s.activeAssetId) throw new HttpError("这份建议已更新，请查看当前画面。", 409);
     if (event.type === "reject_proposal") {
       proposal.status = "rejected";
       if (proposal.kind === "understanding") s.rejectedInterpretations.push(proposal.summary);
-      s.messages.push({ id: crypto.randomUUID(), role: "assistant", content: "这份建议就先放下。我们可以继续按你的意思聊。", createdAt: new Date().toISOString() });
+      s.messages.push({ id: crypto.randomUUID(), role: "assistant", content: "We can leave that idea aside. Let's follow what matters to you.", createdAt: new Date().toISOString() });
     } else {
       if (proposal.kind !== "understanding") throw new HttpError("视觉变化需要在改动预览中单独确认。");
       proposal.status = "approved";

@@ -82,7 +82,7 @@ describe("anonymous studio HTTP boundary", () => {
     const saved = getSession(session.id);
     expect(saved.artworkVersion).toBe(1); expect(saved.assets).toHaveLength(1);
     expect(saved.observation?.status).toBe("failed");
-    expect(saved.messages.at(-1)?.content).toContain("模拟");
+    expect(saved.messages.at(-1)?.content).toContain("Demo mode · local simulation");
   });
   it("gives edited previews a new identity so an old tab cannot authorize new changes", async () => {
     const session = createStudioSession();

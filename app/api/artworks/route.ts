@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
     mutateSession(session.id, s => {
       s.observation = { artworkVersion, status: observation ? "ready" : "failed", items: observation?.items ?? [], uncertainties: observation?.uncertainties ?? [] };
-      s.messages.push({ id: crypto.randomUUID(), role: "assistant", content: session.mode === "demo" ? "作品留在这里了。当前是模拟演示，我不会假装识别到画里的内容。你愿意从哪一处开始聊？" : observation ? "我们一起看看这幅画。你愿意先从哪一处说起？也可以只是画一画，不解释它。" : "原画已经保留。这次画面观察没有完成，你仍然可以用自己的话讲讲，或直接停在这里。", createdAt: new Date().toISOString() });
+      s.messages.push({ id: crypto.randomUUID(), role: "assistant", content: session.mode === "demo" ? "[Demo mode · local simulation] Your artwork is here. I haven't analyzed it in this mode. Is there a part you'd like to tell me about?" : observation ? "Let's look at your picture together. Is there somewhere you'd like to start? You can also leave it just as it is." : "Your original is saved. I couldn't take a closer look this time. You can still tell me about it, or pause here.", createdAt: new Date().toISOString() });
     });
     finishEvent(session.id, body.eventId);
     return NextResponse.json(snapshot(session.id));
