@@ -1,0 +1,40 @@
+{
+  "name": "draw-your-world",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/run.mjs dev",
+    "demo": "node scripts/run.mjs dev --demo",
+    "launch": "node scripts/launcher.mjs start",
+    "launch:demo": "node scripts/launcher.mjs start --demo",
+    "stop": "node scripts/launcher.mjs stop",
+    "dev:web": "next dev --hostname 127.0.0.1",
+    "worker": "node --env-file-if-exists=.env.local --import tsx scripts/worker.ts",
+    "build": "next build",
+    "start": "node scripts/run.mjs start",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "check:api": "node --env-file-if-exists=.env.local --import tsx scripts/check-api.ts"
+  },
+  "dependencies": {
+    "@langchain/core": "^1.3.4",
+    "@langchain/langgraph": "^1.6.1",
+    "@langchain/langgraph-checkpoint": "^1.2.2",
+    "@types/three": "^0.187.0",
+    "next": "^16.0.0",
+    "openai": "^5.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "sharp": "0.35.5",
+    "three": "^0.187.0",
+    "tsx": "^4.23.15",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}
