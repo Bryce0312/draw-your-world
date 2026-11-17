@@ -1,4 +1,4 @@
-import { StoryPrototype } from "@/components/prototype/story-prototype";
-import "./prototype.css";
-export const metadata = { title: "Little Post · Draw Your World", description: "An interactive story prototype in a little postal town." };
-export default function Page() { return <StoryPrototype />; }
+import { WallExperience } from "@/components/wall/wall-experience";
+import "./wall.css";
+export const metadata = { title: "Draw Your World · A little time to draw", description: "Draw freely, talk about what you made, and keep a little moment." };
+export default function Page() { return <WallExperience />; }

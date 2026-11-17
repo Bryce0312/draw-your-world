@@ -6,9 +6,13 @@ const demo = process.argv.includes("--demo");
 const env = { ...process.env, ...(demo ? { STUDIO_MODE: "demo", STUDIO_DATA_DIR: process.env.STUDIO_DEMO_DATA_DIR || ".data-demo" } : {}) };
 const next = fileURLToPath(new URL("../node_modules/next/dist/bin/next", import.meta.url));
 const processes = [
-  spawn(process.execPath, ["--env-file-if-exists=.env.local", "--import", "tsx", "scripts/worker.ts"], { env, stdio: "inherit", windowsHide: true }),
   spawn(process.execPath, [next, command, "--hostname", "127.0.0.1", "--port", env.PORT || "3000"], { env, stdio: "inherit", windowsHide: true }),
 ];
+// The white-wall experience has no media-generation jobs. The archived studio's
+// worker is opt-in so starting this version never resumes old media tasks.
+if (process.argv.includes("--legacy-worker")) processes.push(
+  spawn(process.execPath, ["--env-file-if-exists=.env.local", "--import", "tsx", "scripts/worker.ts"], { env, stdio: "inherit", windowsHide: true }),
+);
 let stopping = false;
 function stop(code = 0) {
   if (stopping) return;
