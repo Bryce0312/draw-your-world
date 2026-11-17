@@ -1,0 +1,16 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+  # Safe default for a public preview. Set STUDIO_MODE=live in Netlify to call AI.
+  STUDIO_MODE = "demo"
+  WALL_STORAGE = "netlify"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Next.js is handled by Netlify's automatically installed OpenNext adapter.
+# Add DEEPSEEK_API_KEY in the Netlify UI with Functions scope.

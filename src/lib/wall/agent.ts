@@ -1,6 +1,6 @@
 import { analyzeArtwork } from "../studio/providers";
-import { DRAWING_KINDS, type DrawingKind, type WallWork } from "./types";
-import { WallError, wallMode } from "./store";
+import { DRAWING_KINDS, type DrawingKind, type WallSession, type WallWork } from "./types";
+import { resolveWallImage, storageMode, WallError, wallMode } from "./store";
 
 function requireAI(work: WallWork) { if (!work.aiConsent) throw new WallError("AI processing is not allowed for this drawing. You can still write your own record.", 403); }
 async function model(messages: { role: "system" | "user" | "assistant"; content: string }[], json = false) {
@@ -9,7 +9,7 @@ async function model(messages: { role: "system" | "user" | "assistant"; content:
   const base = new URL(process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com");
   if (base.protocol !== "https:" && !(process.env.NODE_ENV === "test" && base.protocol === "http:")) throw new WallError("The AI endpoint is not configured securely.", 503);
   let response: Response;
-  try { response = await fetch(`${base.toString().replace(/\/$/, "")}/chat/completions`, { method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: JSON.stringify({ model: process.env.DEEPSEEK_MODEL || "deepseek-flash", messages, stream: false, thinking: { type: "disabled" }, max_tokens: 1600, ...(json ? { response_format: { type: "json_object" } } : {}) }), signal: AbortSignal.timeout(55_000) }); }
+  try { response = await fetch(`${base.toString().replace(/\/$/, "")}/chat/completions`, { method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: JSON.stringify({ model: process.env.DEEPSEEK_MODEL || "deepseek-flash", messages, stream: false, thinking: { type: "disabled" }, max_tokens: 1600, ...(json ? { response_format: { type: "json_object" } } : {}) }), signal: AbortSignal.timeout(storageMode() === "cloud" ? 45_000 : 55_000) }); }
   catch { throw new WallError("AI did not finish this time. Your words are kept. Retry when you are ready.", 503); }
   if (!response.ok) throw new WallError("The AI service is unavailable right now. Your drawing and words are kept.", 503);
   let body: { choices?: { message?: { content?: string }; finish_reason?: string }[] };
@@ -18,11 +18,12 @@ async function model(messages: { role: "system" | "user" | "assistant"; content:
   if (!text || choice?.finish_reason === "length") throw new WallError("AI returned an incomplete reply. Please retry.", 503);
   return text;
 }
-export async function observeWork(work: WallWork) {
+export async function observeWork(work: WallWork, session?: WallSession) {
   requireAI(work);
   if (work.observation.status === "ready") return;
   if (wallMode() === "demo") { work.observation = { status: "demo", items: [], uncertainties: ["Demo mode does not inspect the picture. Tell us what you can see, or continue without AI."] }; return; }
-  const match = work.image.match(/^data:(image\/(?:png|jpeg|webp));base64,(.+)$/);
+  const image = session ? await resolveWallImage(session, work.image) : work.image;
+  const match = image.match(/^data:(image\/(?:png|jpeg|webp));base64,(.+)$/);
   if (!match) throw new WallError("This picture could not be read.");
   try {
     const result = await analyzeArtwork(Buffer.from(match[2], "base64"), match[1], "live", "Write the visible facts and uncertainties in English. Do not interpret emotions, personality or symbolism.");

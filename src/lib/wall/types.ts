@@ -15,7 +15,7 @@ export interface WallShare {
 }
 export interface WallSession { id: string; name: string; works: WallWork[]; activeWorkId: string | null; shares: WallShare[]; createdAt: string }
 export interface WallSnapshot {
-  session: WallSession; mode: WallMode;
+  session: WallSession; mode: WallMode; storage: "local" | "cloud";
   capabilities: { ai: boolean; observation: boolean; professionalDemo: true };
   error?: string;
 }

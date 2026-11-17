@@ -1,45 +1,82 @@
-import { DatabaseSync } from "node:sqlite";
 import { randomUUID } from "node:crypto";
-import fs from "node:fs";
-import path from "node:path";
-import { DRAWING_KINDS, type WallSession, type WallWork, type WallShare, type ProfessionalPacket, type WallMode } from "./types";
+import { DRAWING_KINDS, type WallSession, type WallWork, type WallShare, type ProfessionalPacket } from "./types";
+import { DRAFT_LIFETIME_MS, readCloudWall, storageMode, WallError, wallMode, writeCloudWall, type CloudWallRecord } from "./wall-storage";
+export { storageMode, WallError, wallMode } from "./wall-storage";
+export { storeWallImage, readWallImage, resolveWallImage, pruneWallDrafts } from "./image-storage";
 
-export class WallError extends Error { constructor(message: string, public status = 400) { super(message); } }
-export const wallMode = (): WallMode => process.env.STUDIO_MODE === "demo" ? "demo" : "live";
-const runtime = globalThis as typeof globalThis & { wallMem?: Map<string, WallSession>; wallDbs?: Map<string, DatabaseSync> };
-const memory = runtime.wallMem ??= new Map<string, WallSession>();
-const databases = runtime.wallDbs ??= new Map<string, DatabaseSync>();
-function location() { return path.resolve(process.env.STUDIO_DATA_DIR || path.join(process.cwd(), ".data"), `wall-${wallMode()}.sqlite`); }
-function database() {
-  const file = location(); let db = databases.get(file);
-  if (!db) { fs.mkdirSync(path.dirname(file), { recursive: true }); db = new DatabaseSync(file); db.exec("PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS wall_sessions(id TEXT PRIMARY KEY, payload TEXT NOT NULL)"); databases.set(file, db); }
-  return db;
-}
-const key = (id: string) => `${location()}:${id}`;
-export function loadWall(id?: string): WallSession | undefined {
+const versions = new WeakMap<WallSession, { version: string | null; storage: "local" | "cloud"; id: string; mode: "demo" | "live" }>();
+
+export async function loadWall(id?: string): Promise<WallSession | undefined> {
   if (!id || !/^[a-f0-9-]{36}$/i.test(id)) return;
-  const cached = memory.get(key(id)); if (cached) return structuredClone(cached);
-  const row = database().prepare("SELECT payload FROM wall_sessions WHERE id = ?").get(id) as {payload: string} | undefined;
-  if (!row) return;
-  const result = JSON.parse(row.payload) as WallSession; memory.set(key(id), result); return structuredClone(result);
+  const storage = storageMode();
+  if (storage === "local") {
+    const { readLocalWall } = await import("./sqlite-storage");
+    const result = readLocalWall(id);
+    if (!result) return;
+    versions.set(result.session, { version: result.version, storage, id, mode: wallMode() });
+    return result.session;
+  }
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const result = await readCloudWall(id);
+    if (!result) return;
+    let version = result.version;
+    let session = result.record.working ?? result.record.retained;
+    if (result.record.working && (!result.record.expiresAt || !Number.isFinite(Date.parse(result.record.expiresAt)) || Date.parse(result.record.expiresAt) <= Date.now())) {
+      const expired: CloudWallRecord = { schema: 1, expiresAt: null, retained: result.record.retained };
+      try {
+        version = await writeCloudWall(id, expired, version);
+        session = expired.retained;
+      } catch (error) {
+        // A request that refreshed the draft wins over this cleanup attempt.
+        if (error instanceof WallError && error.status === 409) continue;
+        throw error;
+      }
+    }
+    versions.set(session, { version, storage, id, mode: wallMode() });
+    return session;
+  }
+  throw new WallError("This drawing collection is being updated. Try loading it again.", 409);
 }
 /** Raw conversation persistence has its own permission, separate from retaining a drawing record. */
 export function persistedWall(session: WallSession): WallSession {
   const works = session.works.filter(w => w.status === "saved" && w.saveConsent).map(w => ({ ...structuredClone(w), messages: w.conversationConsent ? structuredClone(w.messages) : [], summary: w.summary.confirmed ? structuredClone(w.summary) : {text:"",confirmed:false,revision:w.revision}, kind: w.summary.confirmed ? w.kind : undefined }));
   return { ...session, works, activeWorkId: works.some(w => w.id === session.activeWorkId) ? session.activeWorkId : null, shares: session.shares.filter(s => works.some(w => w.id === s.workId)) };
 }
-export function writeWall(session: WallSession) {
-  database().prepare("INSERT INTO wall_sessions(id,payload) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload").run(session.id, JSON.stringify(persistedWall(session)));
-  memory.set(key(session.id), structuredClone(session));
+export async function writeWall(session: WallSession): Promise<void> {
+  const state = versions.get(session);
+  if (!state || state.storage !== storageMode() || state.id !== session.id || state.mode !== wallMode()) {
+    throw new WallError("Reload this drawing collection before saving changes.", 409);
+  }
+  const retained = persistedWall(session);
+  let version: string;
+  if (state.storage === "cloud") {
+    const record: CloudWallRecord = {
+      schema: 1,
+      expiresAt: new Date(Date.now() + DRAFT_LIFETIME_MS).toISOString(),
+      working: session,
+      retained,
+    };
+    if (Buffer.byteLength(JSON.stringify(record)) > 3 * 1024 * 1024) {
+      throw new WallError("This drawing collection is full. Remove a drawing or shorten the current conversation before saving more.", 413);
+    }
+    version = await writeCloudWall(session.id, record, state.version);
+  } else {
+    const { writeLocalWall } = await import("./sqlite-storage");
+    version = writeLocalWall(session, retained, state.version);
+  }
+  versions.set(session, { ...state, version });
 }
-export function newWall(): WallSession {
-  const session: WallSession = { id: randomUUID(), name: "", works: [], activeWorkId: null, shares: [], createdAt: new Date().toISOString() }; writeWall(session); return session;
+export async function newWall(): Promise<WallSession> {
+  const session: WallSession = { id: randomUUID(), name: "", works: [], activeWorkId: null, shares: [], createdAt: new Date().toISOString() };
+  versions.set(session, { version: null, storage: storageMode(), id: session.id, mode: wallMode() });
+  await writeWall(session);
+  return session;
 }
 export function workOf(session: WallSession, id: string): WallWork {
   const work = session.works.find(w => w.id === id); if (!work) throw new WallError("This drawing is not in your collection.", 404); return work;
 }
 export function createWork(session: WallSession, image: string, mode: "draw" | "shapes", title?: string) {
-  if (session.works.length >= 40) throw new WallError("Your local collection holds 40 drawings. Remove one before adding another.", 409);
+  if (session.works.length >= 40) throw new WallError("Your collection holds 40 drawings. Remove one before adding another.", 409);
   const now = new Date().toISOString();
   const work: WallWork = { id: randomUUID(), title: title || "An untitled drawing", image, originalImage: image, mode, createdAt: now, updatedAt: now, revision: 0, aiConsent: false, saveConsent: false, conversationConsent: false, observation: { status: "idle", items: [], uncertainties: [] }, messages: [], summary: { text: "", confirmed: false, revision: 0 }, reflection: "", status: "draft" };
   session.works.unshift(work); session.activeWorkId = work.id; return work;

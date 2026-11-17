@@ -2,7 +2,7 @@
 
 Draw Your World 是一个以绘画、自述和记录为核心的 UX 交互原型。用户可以自由画画或摆放几何形状，邀请 AI 一起观察作品，补充自己的解释，确认一份记录，并为这次作品选择一个有趣的名字。界面以英文为主，覆盖电脑、平板和手机布局。
 
-本分支 `design/white-wall-companions` 保存“海报首页＋白墙创作空间＋扁平动物陪伴”的设计与实现，供项目评审和交互演示使用。
+本分支 `codex/netlify-preview` 基于 `design/white-wall-companions`，保存“海报首页＋白墙创作空间＋扁平动物陪伴”的设计与实现，并加入 Netlify 部署配置、云端记录与图片存储。
 
 ![电脑端首页，大小字错位排布，熊的问候姿势与开始入口](./docs/screenshots/white-wall/home-desktop.png)
 
@@ -20,7 +20,7 @@ Draw Your World 是一个以绘画、自述和记录为核心的 UX 交互原型
 | 当次绘画名称 | 16 个趣味名称与原创四字母代码 | 可改选或跳过，名称只随本次作品保存 |
 | 作品历史 | 标题、画作、记录、原作查看、另起副本、下载／删除，周月年回顾 | 已保存的原作保留，修改后建立新版本 |
 | 专业支持 | 示例服务资料、费用与时间、文字／语音／线下预约流程、分享预览与撤回 | 单独选择画作、确认记录及后续访谈意愿 |
-| 其他探索 | 匿名笔记的预览、确认与移除，昵称与本地数据说明 | 所有侧线都可返回主要体验 |
+| 其他探索 | 匿名笔记的预览、确认与移除，昵称与数据保存说明 | 所有侧线都可返回主要体验 |
 
 真实模式连接 DeepSeek 完成观察、对话、总结和名称建议。演示模式会显示 `Interactive demo`，使用脚本回应。专业服务、预约、费用、匿名笔记和沟通方式均提供本地演示状态。
 
@@ -105,6 +105,45 @@ Draw Your World 是一个以绘画、自述和记录为核心的 UX 交互原型
 巨幅字号层级、成熟扁平动物及本版主题来自项目讨论中的设计需求。上面的案例用于研究构图原则。熊、狗及设计方向图使用内置 imagegen 为本项目生成，页面布局、文字、表单与画布通过 React、CSS 和 Canvas 实现。生成简报与素材记录保存在设计目录中。[生成记录](./design/v4/generation-notes.md)
 
 当前 UI 规格、生成参考图和实际走查分别可供核对。[UI／UX 规格](./design/v4/ui-spec.md) · [实施参考图](./design/v4/implementation-board.png) · [视觉走查](./design/v4/visual-review.md) · [流程覆盖](./docs/next-experience-requirements.md)
+
+## 部署到 Netlify
+
+在 Netlify 项目页选择 **Add new project → Import an existing project → GitHub**，授权读取 `Bryce0312/draw-your-world`，部署分支选择 **`codex/netlify-preview`**。仓库根目录的 `netlify.toml` 提供以下设置，Next.js 适配器由平台自动安装。[Netlify 的 Next.js 说明](https://docs.netlify.com/build/frameworks/framework-setup-guides/nextjs/overview/)
+
+| 设置 | 值 |
+| --- | --- |
+| Base directory | 留空，使用仓库根目录 |
+| Build command | `npm run build` |
+| Publish directory | `.next` |
+| Node.js | `22` |
+| 运行模式 | 首次部署默认 `demo`，页面显示模拟 AI 标识 |
+
+可以直接把此分支设为这个 Netlify 项目的 Production branch。已有其他生产站点时，也可以启用此分支的 Branch deploy。这里的 Production branch 是 Netlify 站点设置，GitHub 分支合并可按项目发布安排进行。
+
+### 开启真实 AI
+
+在 Netlify 的 **Project configuration → Environment variables** 配置下表变量，为它们启用 **Functions** scope 并选择对应部署环境，然后重新部署。密钥在 Netlify 控制台填写。
+
+| 变量 | 配置 |
+| --- | --- |
+| `STUDIO_MODE` | `live` 连接真实 AI，`demo` 使用明确标注的脚本回应 |
+| `DEEPSEEK_API_KEY` | 自己的 API key，启用真实 AI 时填写 |
+| `DEEPSEEK_BASE_URL` | `https://api.deepseek.com`，或当前账户使用的兼容端点 |
+| `DEEPSEEK_MODEL` | 当前账户可用且支持图片输入的模型，本地原型使用 `deepseek-flash` |
+| `WALL_STORAGE_NAMESPACE` | 可选，默认 `white-wall`。同一 Netlify 站点的不同部署可用不同值隔离作品数据 |
+
+Blobs 连接上下文由 Netlify Functions 提供。运行期间的会话与图片使用私有、站点级 Blobs 保存，部署更新后继续保留。代码没有 `NEXT_PUBLIC_` 密钥配置。仓库只提交空值的 `.env.example`。[Blobs 文档](https://docs.netlify.com/build/data-and-storage/netlify-blobs/)
+
+### 云端保存与演示范围
+
+- 临时工作内容在最近一次成功操作后保留 24 小时。用户确认保存后，画作与已确认记录进入长期留存副本，原始聊天按单独选项保存。
+- 保存的作品通过同一浏览器的 HttpOnly cookie 找回。清除 cookie 或换设备后无法自行找回，此版尚未提供账号登录。
+- 图片采用独立文件上传与鉴权图片地址，会话响应保持精简。上传总量限制为 4,000,000 字节，并检查真实图片格式与像素大小。
+- 更新使用 ETag 条件写入，冲突时返回当前版本供重试。分享撤回采用强一致读取，专业端仍是当前会话的功能演示。
+- `wall-cleanup` 定时函数分批清除过期工作内容与失去引用的图片，同时处理 demo／live 数据。平台在发布的 Production deploy 每日执行。Branch deploy／Deploy Preview 需在 **Functions → wall-cleanup → Run now** 手动执行清理，过期草稿在再次访问时也会移出工作内容。[定时函数说明](https://docs.netlify.com/build/functions/scheduled-functions/)
+- 云端 `/studio` 会进入本版首页，旧媒体生成接口返回受控提示。当前绘画、聊画、记录、保存与专业预览均使用 `/api/wall` 接口。
+
+部署后按首页绘画 → 自写或 AI 聊画 → 确认记录 → 保存 → 刷新回看 → 分享与撤回走查一次。首次真实 AI 调用需要配置自己的模型账户，平台额度与模型调用分别计费。构建、存储回归与目标平台验收记录见项目文档。[部署验收](./docs/netlify-validation.md)
 
 ## 本地启动
 

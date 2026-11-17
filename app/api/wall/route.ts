@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import sharp from "sharp";
+import { NextRequest } from "next/server";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { readJson, HttpError } from "@/lib/studio/http";
-import { chooseKind, createWork, invalidateSummary, loadWall, newWall, professionalPackets, shareWork, wallMode, WallError, workOf, writeWall } from "@/lib/wall/store";
+import { chooseKind, createWork, invalidateSummary, professionalPackets, shareWork, storeWallImage, wallMode, WallError, workOf, writeWall } from "@/lib/wall/store";
 import { observeWork, replyToWork, suggestDrawingKind, summarizeWork } from "@/lib/wall/agent";
-import type { WallSession, WallSnapshot } from "@/lib/wall/types";
+import type { WallSession } from "@/lib/wall/types";
+import { acquireWall, currentWall, readWallJson, wallFailure, wallResponse, wallSnapshot } from "@/lib/wall/http";
+import { normalizedArtwork } from "@/lib/wall/artwork";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,33 +23,21 @@ const actionSchema = z.discriminatedUnion("action", [
   z.object({ action:z.literal("revoke_share"), shareId:id }).strict(),
   z.object({ action:z.literal("interview"), workId:id, answers:z.record(z.string().max(100),z.string().max(2000)).refine(v=>Object.keys(v).length<=8), consent:z.literal(true) }).strict(),
 ]);
-const singleton = globalThis as typeof globalThis & { wallBusy?: Set<string> };
-const busy = singleton.wallBusy ??= new Set<string>();
-const cookieName = () => `drawing_wall_${wallMode()}`;
-function current(request: NextRequest) { return loadWall(request.cookies.get(cookieName())?.value) ?? newWall(); }
-function snapshot(session: WallSession): WallSnapshot { const available = wallMode()==="demo" || !!process.env.DEEPSEEK_API_KEY; return { session, mode:wallMode(), capabilities:{ai:available,observation:available,professionalDemo:true} }; }
-function response(request: NextRequest, session: WallSession, payload: unknown, status=200) {
-  const result = NextResponse.json(payload,{status,headers:{"Cache-Control":"no-store"}});
-  result.cookies.set(cookieName(),session.id,{httpOnly:true,sameSite:"lax",secure:request.nextUrl.protocol==="https:",path:"/",maxAge:60*60*24*30});return result;
-}
-async function normalizedImage(value: string) {
-  const match=value.match(/^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/]+=*)$/);if(!match)throw new WallError("Use a PNG, JPEG or WebP drawing.");
-  try { const bytes=await sharp(Buffer.from(match[2],"base64"),{limitInputPixels:16_000_000}).rotate().resize({width:1600,height:1600,fit:"inside",withoutEnlargement:true}).png().toBuffer();return `data:image/png;base64,${bytes.toString("base64")}`; }
-  catch { throw new WallError("The picture could not be opened. Your drawing is still on the canvas."); }
-}
 export async function GET(request: NextRequest) {
-  const session=current(request);
-  if(request.nextUrl.searchParams.get("view")==="professional") return response(request,session,{mode:wallMode(),queue:professionalPackets(session)});
-  return response(request,session,snapshot(session));
+  try {
+    const session = await currentWall(request);
+    if (request.nextUrl.searchParams.get("view") === "professional") return wallResponse(request, session, { mode: wallMode(), queue: professionalPackets(session) });
+    return wallResponse(request, session, wallSnapshot(session));
+  } catch (error) { return wallFailure(request, error); }
 }
 export async function POST(request: NextRequest) {
-  let session:WallSession|undefined;let locked=false;
+  let session: WallSession | undefined;
+  let release: (() => void) | undefined;
   try {
-    const action=actionSchema.parse(await readJson(request,9_000_000));session=current(request);
-    if(busy.has(session.id))throw new WallError("The previous action is still finishing. Your input is kept; try again shortly.",409);
-    busy.add(session.id);locked=true;
+    const action=actionSchema.parse(await readWallJson(request));session=await currentWall(request);
+    release=acquireWall(session.id);
     if(action.action==="profile")session.name=action.name;
-    else if(action.action==="create_work")createWork(session,await normalizedImage(action.image),action.mode,action.title);
+    else if(action.action==="create_work")createWork(session,await storeWallImage(session.id,await normalizedArtwork(action.image)),action.mode,action.title);
     else if(action.action==="revoke_share") { const share=session.shares.find(s=>s.id===action.shareId);if(!share)throw new WallError("This share is not in your collection.",404);share.revokedAt=new Date().toISOString(); }
     else {
       const work=workOf(session,action.workId);session.activeWorkId=work.id;
@@ -59,12 +47,12 @@ export async function POST(request: NextRequest) {
           if(action.conversationConsent!==undefined)work.conversationConsent=action.conversationConsent;
           if(!work.saveConsent)work.status="draft";
           break;
-        case "observe": await observeWork(work);break;
+        case "observe": await observeWork(work,session);break;
         case "message": {
           if(!work.aiConsent)throw new WallError("AI processing is not allowed. You can write your own record instead.",403);
           const last=work.messages.at(-1);
           if(last?.role!=="user"||last.content!==action.text) { invalidateSummary(session,work);work.messages.push({id:randomUUID(),role:"user",content:action.text,createdAt:new Date().toISOString()}); }
-          writeWall(session);
+          await writeWall(session);
           const reply=await replyToWork(work);work.messages.push({id:randomUUID(),role:"assistant",content:reply,createdAt:new Date().toISOString()});break;
         }
         case "summarize":if(!work.aiConsent)throw new WallError("AI processing is not allowed. Write your own record instead.",403);invalidateSummary(session,work);work.summary={text:await summarizeWork(work),confirmed:false,revision:work.revision};break;
@@ -75,7 +63,7 @@ export async function POST(request: NextRequest) {
         case "update_work":
           if(action.image&&action.image!==work.image) {
             if(work.status==="saved")throw new WallError("Start a new copy to edit a saved drawing. The original stays in your history.",409);
-            const next=await normalizedImage(action.image);invalidateSummary(session,work);work.image=next;work.aiConsent=false;work.saveConsent=false;work.conversationConsent=false;work.observation={status:"idle",items:[],uncertainties:[]};
+            const next=await storeWallImage(session.id,await normalizedArtwork(action.image));invalidateSummary(session,work);work.image=next;work.aiConsent=false;work.saveConsent=false;work.conversationConsent=false;work.observation={status:"idle",items:[],uncertainties:[]};
           }
           if(action.mode)work.mode=action.mode;
           if(action.reflection!==undefined&&action.reflection!==work.reflection){invalidateSummary(session,work);work.reflection=action.reflection;}
@@ -89,12 +77,8 @@ export async function POST(request: NextRequest) {
       }
       if(action.action!=="select_work")work.updatedAt=new Date().toISOString();
     }
-    writeWall(session);return response(request,session,snapshot(session));
+    await writeWall(session);return wallResponse(request,session,wallSnapshot(session));
   } catch(error) {
-    const known=error instanceof WallError||error instanceof HttpError;
-    const message=known?error.message:error instanceof z.ZodError?"This action is incomplete. Check your choices and try again.":"The action did not finish. Your drawing and words are kept.";
-    const status=known?error.status:error instanceof z.ZodError?400:500;
-    if(session){if(locked){try{writeWall(session);}catch{/* A failed storage write must still return a controlled error, never a success response. */}}return response(request,session,{...snapshot(session),error:message},status);}
-    return NextResponse.json({error:message},{status});
-  } finally {if(locked&&session)busy.delete(session.id);}
+    return wallFailure(request,error,session);
+  } finally {release?.();}
 }

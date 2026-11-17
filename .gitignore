@@ -1,5 +1,7 @@
 node_modules
 .next
+.next-netlify-test
+.netlify/
 .env.*
 !.env.example
 coverage
