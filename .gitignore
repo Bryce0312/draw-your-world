@@ -1,6 +1,7 @@
 node_modules
 .next
 .next-netlify-test
+.next-town-motion-test
 .netlify/
 .env.*
 !.env.example
