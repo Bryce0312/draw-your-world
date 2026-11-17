@@ -1,114 +1,91 @@
-# Draw Your World
+# Draw Your World · Little Post
 
-Draw Your World 是一个以绘画、自述和记录为核心的 UX 交互原型。用户可以自由画画或摆放几何形状，邀请 AI 一起观察作品，补充自己的解释，确认一份记录，并为这次作品选择一个有趣的名字。界面以英文为主，覆盖电脑、平板和手机布局。
+电脑优先、英文界面为主的绘画与自我表达交互原型。当前首页是 **Little Post in Elsewhere**：进入一座美式复古手绘的邮局小镇，在画桌创作、信笺间叙述，再决定把作品留在私人信箱、投向树洞，或带去倾听室。
 
-本分支 `codex/netlify-preview` 基于 `design/white-wall-companions`，保存“海报首页＋白墙创作空间＋扁平动物陪伴”的设计与实现，并加入 Netlify 部署配置、云端记录与图片存储。
+本分支 **`codex/netlify-preview`** 已恢复邮局小镇首页，沿用 `design/little-post-storybook` 的交互与柔和彩铅绘本风格，并保留 Netlify 部署配置。首页使用明确标注的脚本对话，作品经过保存确认后写入当前浏览器的 `localStorage`。
 
-![电脑端首页，大小字错位排布，熊的问候姿势与开始入口](./docs/screenshots/white-wall/home-desktop.png)
+本版用于 UX 评审和交互演示，探索场景叙事能否帮助用户表达、理解选择并掌握分享边界。
 
-## 一次体验如何完成
+![Little Post 小镇地图：建筑与路牌都是实际功能入口](./docs/screenshots/little-post/town-map.png)
 
-**进入首页 → 绘画／拼贴 → 可选 AI 观察与聊画 → 修订并确认记录 → 可选趣味绘画名称 → 保存与回看。**
+本轮按照最新架构图覆盖除视频生成外的完整前端流程，采用场景和可操作物件组织交互。功能与页面跳转见 [flow-spec.md](./design/v3/flow-spec.md)，故事、竞品依据与视觉要求见 [theme-spec.md](./design/v3/theme-spec.md)，功能符号与主题设计理由见 [design-rationale.md](./design/v3/design-rationale.md)。v1.0 发布标签保持不变。
 
-绘画和聊画都能直接进入保存。用户也可以选择自写记录、跳过自评或名称，再决定是否与专业人士分享内容。
+## 一段体验如何走通
 
-| 环节 | 可以操作的内容 | 用户掌握的选择 |
+**来到小镇 → 绘画／拼贴 → 分别选择 AI 与保存许可 → 自述、观察与反思 → 制作明信片 → 选择私藏、分享、寻求支持或离开。**
+
+| 小镇中的位置 | 可以做什么 | 关键选择 |
 | --- | --- | --- |
-| 绘画与拼贴 | 画笔、橡皮、颜色、粗细、撤销／重做、清空确认、PNG 下载，形状拖动／缩放／旋转 | 新作从空白开始，两个创作模式可以切换 |
-| 观察与聊画 | 识别可见对象，围绕作品交流，查看完整对话，放大原作 | AI 处理需要明确允许，含义由创作者补充或纠正 |
-| 记录与回顾 | 编辑总结，填写可选自评和随记，确认自己的记录 | 保存画作记录与保存原始聊天分别选择 |
-| 当次绘画名称 | 16 个趣味名称与原创四字母代码 | 可改选或跳过，名称只随本次作品保存 |
-| 作品历史 | 标题、画作、记录、原作查看、另起副本、下载／删除，周月年回顾 | 已保存的原作保留，修改后建立新版本 |
-| 专业支持 | 示例服务资料、费用与时间、文字／语音／线下预约流程、分享预览与撤回 | 单独选择画作、确认记录及后续访谈意愿 |
-| 其他探索 | 匿名笔记的预览、确认与移除，昵称与数据保存说明 | 所有侧线都可返回主要体验 |
+| 到访登记 / 小镇地图 | 用演示昵称进入；点击建筑探索不同功能 | 可随时回到地图，不要求按固定顺序访问所有地点 |
+| Drawing desk · 创作画桌 | 自由画线、几何拼贴、撤销/重做、下载、提交 | 提交失败保留作品；原作独立保留 |
+| Permission counter · 许可柜台 | 分别选择是否进入 AI 辅助流程、是否允许后续私存 | 两项许可独立，拒绝 AI 仍可继续自己的表达 |
+| Letter room · 信笺间 | 描述画面、自写观察、纠正或删除不合适的理解、选择反思方式 | 用户拥有作品含义，可以跳过对话或只留下画面 |
+| Print shop / My postbox · 明信片与私人信箱 | 编辑标题和文字、选择可选自评、翻面预览、导出 PNG、保存/回看/另存/删除 | 只有明确点击保存才进入浏览器收藏；保存不等于分享 |
+| Weather almanac · 回顾册 | 查看周/月/年的已保存感受记录 | 使用用户自己的记录，不从画作推断情绪或诊断 |
+| Tree hollow · 树洞 | 匿名短笺预览、本地发布、回复、撤回 | 分享有独立确认；本原型不会真的发布给其他人 |
+| Listening room · 倾听室 | 查看示例服务、选择文字/语音/线下、时间与费用、逐项分享、模拟支付及取消 | 只展示被授权的背景；新增内容需重新确认，分享可以撤回 |
+| The way home · 归途 | 结束本次体验，或回到小镇 | 结束和不改变都属于有效选择 |
 
-真实模式连接 DeepSeek 完成观察、对话、总结和名称建议。演示模式会显示 `Interactive demo`，使用脚本回应。专业服务、预约、费用、匿名笔记和沟通方式均提供本地演示状态。
+主题物件也承担具体含义：**建筑是去处，邮戳是单项许可，私人信箱是保存，打开的信封是逐项分享，票据是预约承诺。** 这些对应关系及设计取舍记录在 [设计思考](./design/v3/design-rationale.md) 中。
 
-## 主要界面
+## 实际界面预览
 
-以下是本地生产版本的实际运行截图，拍摄于 2026-11-17。示例画作通过页面里的真实画笔绘制，文字采用演示内容，截图中的 Demo 标识保留在画面上。
+以下均为本地运行的实际界面截图，不是生成的设计稿。画作采用内置示例，昵称与文案为演示内容；截图日期为 2026-11-16。
 
-### 绘画与聊画
+### 1. 到达：从一张欢迎纸条进入小镇
 
-白墙工作区把作品放在视觉中心，工具集中在下沿。真正的绘图区使用固定坐标，导出的图片保持纯白底。进入聊画后，同一幅作品缩小到上方，对话在下方展开，返回时恢复绘画视图与工具。
+全景插画与前景纸条构成入口；地图中的建筑继续承担导航，保持同一个故事世界。
 
-![白墙绘画，工具托与动物位于作品之外](./docs/screenshots/white-wall/drawing-desktop.png)
+![进入 Elsewhere 的欢迎纸条](./docs/screenshots/little-post/arrival.png)
 
-![作品上方、对话下方的聊画布局，消息保留来源标签](./docs/screenshots/white-wall/talk-desktop.png)
+### 2. 创作：在画桌上留下自己的画面
 
-进入聊画前，用户分别选择 AI 处理与后续保存许可。[查看许可页](./docs/screenshots/white-wall/permission-desktop.png)
+画纸、工具托盘和完成操作集中在桌面；可以自由绘画，也可以切换到几何拼贴。图中是主动选择的内置示例。
 
-### 修订记录与当次趣味名称
+![创作画桌与画笔工具](./docs/screenshots/little-post/drawing-desk.png)
 
-用户可以改写总结，确认自己的表达，再选择或更换这次作品的名称。四字母代码使用独立字母组合，16 个名称地位相同。名称依据本人确认的记录提出，用户可以直接跳过。
+### 3. 表达：作品与信纸并置
 
-![用户可以编辑记录并选择是否补充自评和随记](./docs/screenshots/white-wall/record-review-desktop.png)
+保留原作，让用户补充自己的话、纠正理解或直接跳过。当前首页的陪伴文字明确标为脚本示例，不是实时 AI 回复。
 
-![当次绘画名称，可以改选或跳过](./docs/screenshots/white-wall/kind-desktop.png)
+![信笺间：原作、对话和继续选择](./docs/screenshots/little-post/letter-room.png)
 
-### 保存与回看
+### 4. 留下：制作一张自己的明信片
 
-保存前展示标题、保存位置与项目选择。原始聊天有独立选项。作品库保留画面和日期，用户可打开记录、查看提交原作，或从旧作继续创作一个副本。
+编辑标题、文字与可选的“内心天气”，翻面查看、导出完整 PNG，再决定是否私存。感受由用户自评，系统不替用户下结论。
 
-![保存审核，画作记录与原始聊天分别选择](./docs/screenshots/white-wall/save-review-desktop.png)
+![明信片编辑、自评与保存入口](./docs/screenshots/little-post/postcard.png)
 
-![作品回看，狗伙伴出现在目录边缘](./docs/screenshots/white-wall/gallery-desktop.png)
+### 5. 分享：看清信封里究竟放了什么
 
-保存完成后显示目的地，并提供继续绘画和回看入口。[查看保存完成状态](./docs/screenshots/white-wall/saved-desktop.png)
+原画、用户自己的话、已审阅的示例整理分别勾选；右侧即时显示接收方能看到的内容。什么都不分享也可以继续预约演示。
 
-### 主动分享与专业端预览
-
-用户先看见接收方及完整预览，再确认分享范围。专业端按已选字段展示画作和本人确认的记录。撤回或内容版本变化后，旧分享失效。专业端目前通过同一匿名会话提供本地预览。
-
-![用户选择画作和确认记录，核对专业人士将看到的内容](./docs/screenshots/white-wall/sharing-preview-desktop.png)
+![独立分享选择及接收方预览](./docs/screenshots/little-post/sharing-envelope.png)
 
 <details>
-<summary>查看专业端的对应画面</summary>
+<summary>查看手机窄屏示例</summary>
 
-![专业端只展示这次选择并确认的内容](./docs/screenshots/white-wall/professional-desktop.png)
+作品和信纸在窄屏按阅读顺序排列，保留完整操作；本轮仍以电脑演示为主要目标。
+
+<img src="./docs/screenshots/little-post/letter-mobile.png" alt="手机窄屏的信笺间" width="390" />
 
 </details>
 
-### 手机布局
+精选截图保存在 [`docs/screenshots/little-post/`](./docs/screenshots/little-post/)，已随本分支提交；原始测试截图、日志和用户运行数据不进入仓库。
 
-手机重新安排首页的大小字、纸面和角色。聊画使用纵向布局，输入时根据可用视口收拢预览和装饰。已在桌面浏览器检查 390、360 宽度及短视口，真实 iOS／Android 键盘仍需实机验证。
+## 运行入口与保存方式
 
-<p>
-  <img src="./docs/screenshots/white-wall/home-mobile.png" width="280" alt="手机首页，大字与开始入口完整显示" />
-  <img src="./docs/screenshots/white-wall/talk-mobile.png" width="280" alt="手机聊画，完整作品预览、对话与输入纵向排列" />
-</p>
+- **`/`：小镇交互原型。** 演示登录、绘画/拼贴、独立许可、对话、观察、反馈、明信片、私人收藏、匿名社区、专业服务预约/逐项分享/支付/三种沟通方式、个人页及周月年回顾。不调用模型或外部服务。对话为标注的脚本示例，社区、支付和预约只在本地演示。
+- **本地 `/studio`** 提供原有 Sunlit Studio 界面、Agent、图像编辑和可选视频接口，使用后文的服务配置与真实／模拟模式。
+- **Netlify 上的 `/studio`** 跳转到邮局首页，旧画室 API 返回受控的 410 提示。
 
-## 设计方案与设计思考
+小镇在当前浏览器的 `localStorage` 保存演示访客名及**显式确认保存**的作品，私人信箱最多 30 张。未保存画作、聊天、树洞内容、预约与沟通记录保留在本次页面内存中，刷新后清空。清除浏览器数据或换设备会影响找回本地收藏。分享选择独立确认。
 
-本版继续探索温暖、有艺术感、留白充分且操作直接的绘画体验。上一轮邮局小镇的功能覆盖为本版提供了流程基础，这一轮把主题集中在创作空间和动物陪伴上。
-
-| 我们关注的问题 | 本版设计决定 | 希望进一步验证的体验 |
-| --- | --- | --- |
-| 首次进入能否理解要做什么 | 首页采用海报构图，巨幅标题形成层级，突出 `Start drawing` | 用户是否能直接开始，次要入口是否容易找到 |
-| 用户怎样持续看见自己的画 | 白墙空间中保留完整画作，工具落在边缘，聊画时等比调整预览 | 切换状态后能否辨认同一作品，并继续原来的笔迹 |
-| 温暖感怎样融入操作 | 熊以问候、安坐、倾听和捧纸姿势回应阶段，狗出现在历史页 | 角色能否帮助理解状态，是否分散创作注意力 |
-| 艺术构图怎样适应不同屏幕 | 桌面利用横向留白，手机重排字面和工具，取消绘画页蓝色侧条，以米白、赭色和鼠尾草绿呼应 | 小屏操作、短视口输入与长文本是否清楚可达 |
-| AI 的整理怎样允许用户修正 | 可见观察、用户消息和 AI 回应标明来源，总结经过编辑和确认 | 用户是否愿意纠正、是否理解记录形成的过程 |
-| 保存和分享怎样让人看明白 | 设置分别的保存选项，分享前显示所选内容，授权绑定作品版本 | 用户能否准确说出保存了什么、交给谁看了什么 |
-| 有趣的名称怎样保持轻松 | 每次作品使用可更换的趣味名称，允许跳过 | 用户是否觉得有趣，是否理解它只属于这次作品 |
-
-这些是当前设计假设。已有实现和浏览器走查支持继续评审，下一步可以通过真实用户任务测试验证开始绘画、纠正记录和分享选择的理解情况。
-
-### 参考来源
-
-| 参考 | 原项目的做法 | 我们的应用 |
-| --- | --- | --- |
-| Studio Feixen《Luzern Poster》 | 用倚靠墙面的海报平面组织画面，形成向空间展开的效果 | 借鉴平面间的位置关系，发展首页纸面、白墙和边缘物件的空间构图。[原项目](https://www.studiofeixen.ch/luzern-poster/) |
-| Graphic Thought Facility《Robert Rauschenberg: Jammers》展册 | 宽裕页面与克制排字回应作品的尺度和色彩 | 让作品拥有主要面积，将说明安排为画面下方的短文字。[原项目](https://graphicthoughtfacility.com/gagosian-robert-rauschenberg-jammers/) |
-| 本项目邮局小镇探索 | 完整尝试了地图入口、画桌、信件、收藏与支持流程 | 延续可返回的交互关系和明确的内容选择，将新主题放入创作与回看环节。[历史记录](./docs/little-post-archive.md) |
-
-巨幅字号层级、成熟扁平动物及本版主题来自项目讨论中的设计需求。上面的案例用于研究构图原则。熊、狗及设计方向图使用内置 imagegen 为本项目生成，页面布局、文字、表单与画布通过 React、CSS 和 Canvas 实现。生成简报与素材记录保存在设计目录中。[生成记录](./design/v4/generation-notes.md)
-
-当前 UI 规格、生成参考图和实际走查分别可供核对。[UI／UX 规格](./design/v4/ui-spec.md) · [实施参考图](./design/v4/implementation-board.png) · [视觉走查](./design/v4/visual-review.md) · [流程覆盖](./docs/next-experience-requirements.md)
+本分支仍保存白墙版本的 `/api/wall` 云端接口与 Netlify Blobs 适配代码。邮局首页使用上述浏览器本地存储，当前前台流程独立运行。
 
 ## 部署到 Netlify
 
-在 Netlify 项目页选择 **Add new project → Import an existing project → GitHub**，授权读取 `Bryce0312/draw-your-world`，部署分支选择 **`codex/netlify-preview`**。仓库根目录的 `netlify.toml` 提供以下设置，Next.js 适配器由平台自动安装。[Netlify 的 Next.js 说明](https://docs.netlify.com/build/frameworks/framework-setup-guides/nextjs/overview/)
+在 Netlify 导入 GitHub 仓库 `Bryce0312/draw-your-world`，部署分支选择 **`codex/netlify-preview`**。仓库根目录的 `netlify.toml` 提供以下配置。
 
 | 设置 | 值 |
 | --- | --- |
@@ -116,82 +93,96 @@ Draw Your World 是一个以绘画、自述和记录为核心的 UX 交互原型
 | Build command | `npm run build` |
 | Publish directory | `.next` |
 | Node.js | `22` |
-| 运行模式 | 首次部署默认 `demo`，页面显示模拟 AI 标识 |
 
-可以直接把此分支设为这个 Netlify 项目的 Production branch。已有其他生产站点时，也可以启用此分支的 Branch deploy。这里的 Production branch 是 Netlify 站点设置，GitHub 分支合并可按项目发布安排进行。
+Netlify 自动安装 Next.js 适配器。邮局首页的绘画、脚本对话和本地保存可直接演示。模型密钥用于本地连接式画室，首页演示可以直接开始。[Netlify 的 Next.js 说明](https://docs.netlify.com/build/frameworks/framework-setup-guides/nextjs/overview/)
 
-### 开启真实 AI
+此前部署适配的本地验收记录和平台验证范围见 [Netlify 验收说明](./docs/netlify-validation.md)。
 
-在 Netlify 的 **Project configuration → Environment variables** 配置下表变量，为它们启用 **Functions** scope 并选择对应部署环境，然后重新部署。密钥在 Netlify 控制台填写。
+## 启动
 
-| 变量 | 配置 |
-| --- | --- |
-| `STUDIO_MODE` | `live` 连接真实 AI，`demo` 使用明确标注的脚本回应 |
-| `DEEPSEEK_API_KEY` | 自己的 API key，启用真实 AI 时填写 |
-| `DEEPSEEK_BASE_URL` | `https://api.deepseek.com`，或当前账户使用的兼容端点 |
-| `DEEPSEEK_MODEL` | 当前账户可用且支持图片输入的模型，本地原型使用 `deepseek-flash` |
-| `WALL_STORAGE_NAMESPACE` | 可选，默认 `white-wall`。同一 Netlify 站点的不同部署可用不同值隔离作品数据 |
+Windows 可以直接在项目文件夹双击：
 
-Blobs 连接上下文由 Netlify Functions 提供。运行期间的会话与图片使用私有、站点级 Blobs 保存，部署更新后继续保留。代码没有 `NEXT_PUBLIC_` 密钥配置。仓库只提交空值的 `.env.example`。[Blobs 文档](https://docs.netlify.com/build/data-and-storage/netlify-blobs/)
+- **`启动小镇原型.cmd`**：推荐用于本轮演示。打开小镇首页，沿用已有启动器的安全模拟模式。
+- **`启动画室.cmd`**：打开首页，并为 `/studio` 启用真实 AI 模式，沿用 `.env.local` 配置。
+- **`启动模拟演示.cmd`**：打开首页，`/studio` 同样为明确标识的本地模拟模式。
+- **`停止画室.cmd`**：停止一键入口启动的网页与后台任务，保留作品记录。
 
-### 云端保存与演示范围
+首次启动会在需要时安装依赖、构建界面；重复点击会打开已运行的同模式画室。后台进程隐藏运行，日志位于 `.data/launcher/`。切换模式或更新源码后，先停止当前画室再启动，以载入新构建。命令行等价入口为 `npm run launch`、`npm run launch:demo`、`npm run stop`。
 
-- 临时工作内容在最近一次成功操作后保留 24 小时。用户确认保存后，画作与已确认记录进入长期留存副本，原始聊天按单独选项保存。
-- 保存的作品通过同一浏览器的 HttpOnly cookie 找回。清除 cookie 或换设备后无法自行找回，此版尚未提供账号登录。
-- 图片采用独立文件上传与鉴权图片地址，会话响应保持精简。上传总量限制为 4,000,000 字节，并检查真实图片格式与像素大小。
-- 更新使用 ETag 条件写入，冲突时返回当前版本供重试。分享撤回采用强一致读取，专业端仍是当前会话的功能演示。
-- `wall-cleanup` 定时函数分批清除过期工作内容与失去引用的图片，同时处理 demo／live 数据。平台在发布的 Production deploy 每日执行。Branch deploy／Deploy Preview 需在 **Functions → wall-cleanup → Run now** 手动执行清理，过期草稿在再次访问时也会移出工作内容。[定时函数说明](https://docs.netlify.com/build/functions/scheduled-functions/)
-- 云端 `/studio` 会进入本版首页，旧媒体生成接口返回受控提示。当前绘画、聊画、记录、保存与专业预览均使用 `/api/wall` 接口。
-
-部署后按首页绘画 → 自写或 AI 聊画 → 确认记录 → 保存 → 刷新回看 → 分享与撤回走查一次。首次真实 AI 调用需要配置自己的模型账户，平台额度与模型调用分别计费。构建、存储回归与目标平台验收记录见项目文档。[部署验收](./docs/netlify-validation.md)
-
-## 本地启动
-
-需要 Node.js 22.13+ 与 npm，数据库采用内置 `node:sqlite`。
-
-Windows 可以双击 `启动白墙演示.cmd` 体验完整本地演示，或使用 `启动画室.cmd` 连接 `.env.local` 中配置的真实 AI。`停止画室.cmd` 负责关闭一键入口启动的服务。切换模式或更新源码后，先停止再启动。
+需要 Node.js 22.13+（建议当前 LTS；本机 Node 23.5 已验证）与 npm。项目使用内置 `node:sqlite`，不需要另外安装数据库。
 
 ```powershell
 npm install
-npm run demo
-# 配好 .env.local 后运行真实 AI
+# 从 .env.example 创建 .env.local，填写自己的服务端配置
 npm run dev
 ```
 
-访问终端给出的地址，默认是 http://127.0.0.1:3000。启动器会根据可用端口调整地址，并在源码变化后重新构建。
+打开 http://127.0.0.1:3000 。默认启动 Next.js 网页服务，`PORT` 可调整端口。若需使用本地 `/studio` 的旧媒体生成队列，可显式执行 `npm run dev -- --legacy-worker`，或在运行 `npm start` 时加上 `-- --legacy-worker`。Ctrl+C 关闭命令启动的服务。
+
+```powershell
+# 不使用任何真实模型服务，界面始终标明模拟模式
+npm run demo
+# 稳定演示前构建
+npm run build
+npm start
+```
+
+`/studio` 的模拟模式只验证交互、草稿确认、图片任务与恢复：图片结果是带 **DEMO** 标记的原画预览，不声称实际执行编辑；没有伪造的生成视频。真实图片/视频功能必须使用 live 模式并配置相应服务。小镇首页始终是纯前端原型，与启动模式无关。
+
+## 连接式画室 `/studio` 的服务配置
+
+复制 `.env.example` 到 `.env.local`。不要把密钥放到浏览器代码或提交到版本库。
 
 | 配置 | 用途 |
-| --- | --- |
-| `DEEPSEEK_API_KEY` | 服务端调用模型的密钥 |
-| `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL` | 可选服务端点和模型配置 |
-| `STUDIO_MODE` | `live` 或 `demo` |
-| `STUDIO_DATA_DIR` | 本地 SQLite 保存目录 |
+|---|---|
+| `DEEPSEEK_API_KEY` / `DEEPSEEK_MODEL` | 对话、可见内容观察；默认 `deepseek-flash` |
+| `DEEPSEEK_BASE_URL` | 默认 `https://api.deepseek.com` |
+| `DASHSCOPE_API_KEY` / `DASHSCOPE_IMAGE_ENDPOINT` | Qwen 图像编辑，必须对应同一账户区域 |
+| `DASHSCOPE_IMAGE_MODEL` | 默认 `qwen-image-3.0` |
+| `DASHSCOPE_VIDEO_ENDPOINT` / `WAN_MODEL` | Wan 图生视频；默认 `wan3.0-video` |
+| `DASHSCOPE_TASK_ENDPOINT` | 可选；视频查询地址，默认从视频端点 origin 解析 |
+| `STUDIO_MODE` | `live`（默认）或 `demo` |
+| `STUDIO_DATA_DIR` | 默认项目 `.data`，保存 SQLite、checkpoint 与私有素材 |
 
-从 `.env.example` 创建 `.env.local` 并填入自己的配置。密钥通过服务端环境变量读取。Git 忽略本地环境文件、数据库、运行日志和测试输出。
+端点示例见 `.env.example`。模型、密钥、workspace 与 endpoint 必须按实际供应商控制台配套配置。没有配置的能力在界面标明；失败不转换成成功。
 
-## 实现与当前验证
+视频默认 5 秒、720P、无音轨、固定镜头。供应商异步生成通常需要分钟级等待，期间可继续聊天。保留手绘和局部变化由提示约束及用户验收共同控制，不保证像素级不变。
 
-前端使用 Next.js、React、TypeScript 与 Canvas，后端使用本地 Node 服务和 SQLite。保存记录通过匿名 HttpOnly Cookie 关联，作品保存与原始聊天保存有各自选项。未保存草稿保留在服务进程内存中，重启服务后需要重新开始。继续查看同一作品库需要保持相同浏览器与访问来源。
+## 连接式画室 `/studio` 的交互和数据
 
-- `/` 提供本版白墙体验。
-- `/professional` 提供已授权内容的专业端本地预览。
-- `/little-post` 保留上一轮小镇探索。
-- `/studio` 保留更早的连接式画室供比较。
+- 提交原画后做一次中性观察；失败仍可自述。原画永远独立保留。
+- LangGraph `prepare → reason → tools → finish` 负责聊天、记忆与提出草稿；工具无法生成媒体。
+- 用户原话、AI 理解草稿、已确认理解、被否认解释分别记录。更正会作废相关旧理解与建议。
+- 只有点击当前草稿的确认按钮才创建生成任务。改动画、改原画、选择其他结果后，旧来源的草稿不能执行。
+- 图片结果可对照、接受或舍弃；动画不自动播放。重复点击复用同一任务，网络提交状态不明时不自动再次付费调用。
+- 匿名 HttpOnly Cookie 绑定本地会话。接口只接受用户事件，不接受前端提交的整份会话。素材必须由所属会话读取。
+- 刷新可恢复，数据保存在此电脑；“重新开始”清理旧会话、素材及图记忆。画布未提交草稿暂存在当前浏览器。
+- 取消代表停止等待和使用结果，已提交给供应商的任务可能继续执行。供应商副本不受本地删除控制。
 
-本版流程覆盖绘画、可选 AI、自述与记录、趣味名称、回看及后续支持。视频生成从本版流程中移除，历史媒体任务的 worker 通过显式命令启动。
+连接式画室按本机单实例演示实现，不提供真实账号、公开分享、专业人员工作台、社区或支付。小镇首页涵盖这些功能的前端状态与逻辑，仍未连接相应后端。产品不作诊断或疗效承诺。
 
-当前专业端、预约、费用、文字／语音／线下沟通和匿名笔记使用本地演示状态。真实手机键盘、手写笔与触摸设备的实机测试尚待完成。
-
-已通过 66 项自动测试、TypeScript 检查和生产构建。使用示例画作验证了真实 API 的观察、对话、总结与名称建议，并完成生产页面的保存回看、失败重试、重复点击、字段过滤和撤回走查。[验收记录](./docs/white-wall-validation.md)
+## 验证
 
 ```powershell
 npm test
 npm run typecheck
 npm run build
-# 脚本演示检查
-node --import tsx scripts/check-wall-api.ts
-# 使用自己的服务配置执行真实 API 检查，会消耗模型额度
-node --env-file-if-exists=.env.local --import tsx scripts/check-wall-api.ts --live
+# 使用 .env.local 实际调用识图与三轮 Agent 对话（会消耗供应商额度），仅上传程序生成的测试画
+npm run check:api
+# 以下参数另行调用真实图片/视频，需先配齐对应服务
+npm run check:api -- --image --video
 ```
 
-浏览器流程检查脚本位于 `scripts/browser/`，开发技能快照位于 `.agents/skills/`。修改代码前遵循项目 `AGENTS.md` 和当前安装版本的 Next.js 文档。[技能来源](./.agents/skills/README.md)
+API 检查报告只记录成功/失败、耗时和数量，保存在 `.data/checks/latest.json`，不记录凭据或服务原始响应。浏览器走查截图保存在 `output/playwright/`。
+
+当前验证结果与真实生成边界见 [VALIDATION.md](./VALIDATION.md)。切换 Live/Demo 时会开启对应模式的新会话，另一模式的本地记录与队列保留且不会被当前 worker 执行。
+
+测试覆盖原作保留、源版本校验、生成确认、重复请求、取消与旧结果、模拟标识、缺配置失败、会话隔离、跨源请求、动态工具草稿、用户纠正及 SQLite 恢复。真实模型的措辞、识别与手绘保真还需由实际体验验证。
+
+## 开发资料
+
+原始交接见 [prdv0.1.md](./prdv0.1.md)。旧 `src/lib/harness` 作为历史实现与基线测试保留；连接式画室使用 `src/lib/studio`，小镇状态位于 `src/lib/prototype`，交互组件位于 `src/components/prototype`。修改 Next.js 前按 `AGENTS.md` 阅读当前安装版本的本地文档。
+
+项目技能仓库位于 [`.agents/skills/`](./.agents/skills/README.md)，包含 `frontend-design`、`vercel-react-best-practices`、`playwright`、`imagegen` 的完整快照与来源校验记录。它们不会成为应用运行依赖。
+
+界面采用设计图先行的流程：场景参考与独立插画保存于 `design/v3/`，再用真实 React、CSS 和 Canvas 实现物件与交互。视觉规则、参考版本与生成提示词见 [design/README.md](./design/README.md)。设计稿不作为整页图片界面使用。
